@@ -21,7 +21,7 @@
 , "docker-registry-server"
 , "elasticdump"
 , "elm-oracle"
-, "elm-test"
+, { "elm-test": "0.19.0-beta8" }
 , "emoj"
 , "eslint"
 , "eslint_d"

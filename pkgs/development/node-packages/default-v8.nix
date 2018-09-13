@@ -27,6 +27,10 @@ nodePackages // {
     '';
   };
 
+  elmi-to-json = nodePackages.elmi-to-json.override {
+    dontNpmInstall = true;
+  };
+
   ios-deploy = nodePackages.ios-deploy.override {
     preRebuild = ''
       LD=$CC
