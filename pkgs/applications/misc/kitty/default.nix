@@ -1,11 +1,32 @@
-{ stdenv, substituteAll, fetchFromGitHub, python3Packages, glfw, libunistring,
-  harfbuzz, fontconfig, pkgconfig, ncurses, imagemagick, xsel,
-  libstartup_notification, libX11, libXrandr, libXinerama, libXcursor,
-  libxkbcommon, libXi, libXext, wayland-protocols, wayland,
-  which, dbus
+{ stdenv
+, substituteAll
+, libstartup_notification
+, fetchFromGitHub
+# runtime dependencies
+, python36Packages # pygments
+, harfbuzz
+, zlib
+, libpng
+, freetype ? null
+, fontconfig ? null
+, imagemagick
+# all build dependencies
+, pkgconfig
+# linux build dependencies
+, dbus ? null
+, libXcursor ? null
+, libXrandr ? null
+, libXi ? null
+, libXinerama ? null
+, libGL ? null
+, libxkbcommon ? null
+# darwin build dependencies
+, darwin
+# not documented dependencies
+, ncurses
 }:
 
-with python3Packages;
+with python36Packages;
 buildPythonApplication rec {
   version = "0.12.3";
   name = "kitty-${version}";
@@ -18,13 +39,20 @@ buildPythonApplication rec {
     sha256 = "1nhk8pbwr673gw9qjgca4lzjgp8rw7sf99ra4wsh8jplf3kvgq5c";
   };
 
-  buildInputs = [
-    fontconfig glfw ncurses libunistring harfbuzz libX11
-    libXrandr libXinerama libXcursor libxkbcommon libXi libXext
-    wayland-protocols wayland dbus
+  OVERRIDE_CFLAGS = [ "-Wno-error=four-char-constants" ];
+  NIX_CFLAGS_COMPILE = [ "-Wno-error=unused-command-line-argument" ];
+
+  buildInputs = with darwin.apple_sdk.frameworks; [
+    harfbuzz zlib libpng python36Packages.pygments imagemagick
+    ncurses
+  ] ++ stdenv.lib.optionals stdenv.isLinux [
+    freetype fontconfig dbus libXcursor libXrandr libXi
+    libXinerama libGL libxkbcommon
+  ] ++ stdenv.lib.optionals stdenv.isDarwin [
+    Cocoa CoreText CoreGraphics IOKit CoreFoundation CoreVideo OpenGL
   ];
 
-  nativeBuildInputs = [ pkgconfig which sphinx ];
+  nativeBuildInputs = [ pkgconfig ];
 
   outputs = [ "out" "terminfo" ];
 
@@ -43,7 +71,7 @@ buildPythonApplication rec {
     runHook preInstall
     mkdir -p $out
     cp -r linux-package/{bin,share,lib} $out
-    wrapProgram "$out/bin/kitty" --prefix PATH : "$out/bin:${stdenv.lib.makeBinPath [ imagemagick xsel ]}"
+    wrapProgram "$out/bin/kitty" --prefix PATH : "$out/bin:${stdenv.lib.makeBinPath [ harfbuzz zlib libpng python36Packages.pygments imagemagick ]}"
     runHook postInstall
   '';
 
@@ -59,7 +87,7 @@ buildPythonApplication rec {
     homepage = https://github.com/kovidgoyal/kitty;
     description = "A modern, hackable, featureful, OpenGL based terminal emulator";
     license = licenses.gpl3;
-    platforms = platforms.linux;
+    platforms = platforms.unix;
     maintainers = with maintainers; [ tex rvolosatovs ];
   };
 }
